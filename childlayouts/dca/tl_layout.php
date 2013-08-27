@@ -83,7 +83,6 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
 );
 
 
-
 /**
  * Class tl_layout_childLayouts
  *
@@ -95,7 +94,11 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
 class tl_layout_childLayouts extends Backend
 {
 
-	protected $strOriginPalette;
+	/**
+	 * The original (unshortened) palette
+	 * @var string
+	 */
+	protected $strOriginalPalette;
 
 	/**
 	 * Import the back end user object
@@ -136,7 +139,7 @@ class tl_layout_childLayouts extends Backend
 	public function getPaletteSections()
 	{
 		// Split palettes in legends
-		$arrPalettes = trimsplit(';', $this->strOriginPalette);
+		$arrPalettes = trimsplit(';', $this->strOriginalPalette);
 
 		$return = array();
 
@@ -163,31 +166,29 @@ class tl_layout_childLayouts extends Backend
 	{
 		// Get child layout row
 		$objChildLayout = $this->Database->prepare("SELECT isChild,parentLayout,specificFields FROM tl_layout WHERE id=?")
-		                            ->limit(1)
-		                            ->execute($dc->id);
+		                                 ->limit(1)
+		                                 ->execute($dc->id);
 
+		// Cancel if there is no need
 		if (!$objChildLayout->isChild || !$objChildLayout->parentLayout)
 		{
 			return;
 		}
 
-		$this->strOriginPalette = $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'];
+		// Set original palette used for getPaletteSections()
+		$this->strOriginalPalette = $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'];
 
 		// Modify palettes by means of user settings
 		$strTitleLegend = strstr($GLOBALS['TL_DCA']['tl_layout']['palettes']['default'], ';', true);
 
+		// Adjust palette
 		if (!$objChildLayout->specificFields)
 		{
 			$GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = $strTitleLegend;
 		}
 		else
 		{
-			$GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = str_replace
-			(
-				$GLOBALS['TL_DCA']['tl_layout']['palettes']['default'],
-				$strTitleLegend . implode(';', deserialize($objChildLayout->specificFields)),
-				$GLOBALS['TL_DCA']['tl_layout']['palettes']['default']
-			);
+			$GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = $strTitleLegend . ';' . implode(';', deserialize($objChildLayout->specificFields));
 		}
 
 		// Get parent layout row
