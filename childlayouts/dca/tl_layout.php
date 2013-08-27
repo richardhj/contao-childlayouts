@@ -41,8 +41,8 @@ $GLOBALS['TL_DCA']['tl_layout']['config']['onload_callback'][] = array('tl_layou
 $GLOBALS['TL_DCA']['tl_layout']['palettes']['__selector__'][] = 'isChild';
 $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = str_replace
 (
-	',fallback',
-	',fallback,isChild',
+	';{header_legend}',
+	',isChild;{header_legend}',
 	$GLOBALS['TL_DCA']['tl_layout']['palettes']['default']
 );
 
@@ -61,7 +61,7 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['isChild'] = array
 	'label'                 => &$GLOBALS['TL_LANG']['tl_layout']['isChild'],
 	'exclude'               => true,
 	'inputType'             => 'checkbox',
-	'eval'                  => array('submitOnChange'=>true)
+	'eval'                  => array('submitOnChange'=>true, 'tl_class'=>'w50 m12')
 );
 
 $GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = array
@@ -70,7 +70,7 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = array
 	'exclude'               => true,
 	'inputType'             => 'select',
 	'options_callback'      => array('tl_layout_childLayouts', 'getPossibleParentLayouts'),
-	'eval'                  => array('chosen'=>true)
+	'eval'                  => array('chosen'=>true, 'tl_class'=>'w50')
 );
 
 $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
