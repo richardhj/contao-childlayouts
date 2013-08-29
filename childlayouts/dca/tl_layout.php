@@ -101,11 +101,12 @@ class tl_layout_childLayouts extends Backend
 	protected $strOriginalPalette;
 
 	/**
-	 * Import the back end user object
+	 * Set original palette
 	 */
 	public function __construct()
 	{
 		parent::__construct();
+		$this->strOriginalPalette = $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'];
 	}
 
 
@@ -178,9 +179,6 @@ class tl_layout_childLayouts extends Backend
 		{
 			return;
 		}
-
-		// Set original palette used for getPaletteSections()
-		$this->strOriginalPalette = $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'];
 
 		// Modify palettes by means of user settings
 		$strTitleLegend = strstr($GLOBALS['TL_DCA']['tl_layout']['palettes']['default'], ';', true);
