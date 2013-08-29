@@ -20,7 +20,7 @@
  * License along with this program. If not, please visit the Free
  * Software Foundation website at <http://www.gnu.org/licenses/>.
  *
- * PHP version 5
+ * PHP version 5.3
  * @copyright  Richard Henkenjohann 2013
  * @author     Richard Henkenjohann
  * @package    Language
@@ -151,7 +151,11 @@ class tl_layout_childLayouts extends Backend
 				continue;
 			}
 
-			$legend = trimsplit(':', preg_split('/\{([^\}]+)\}/', $palette, -1, PREG_SPLIT_DELIM_CAPTURE)[1])[0];
+			// Extract legend
+			$legend = preg_split('/\{([^\}]+)\}/', $palette, -1, PREG_SPLIT_DELIM_CAPTURE);
+			$legend = trimsplit(':', $legend[1]);
+			$legend = $legend[0];
+
 			$return[$palette] = $GLOBALS['TL_LANG']['tl_layout'][$legend];
 		}
 
