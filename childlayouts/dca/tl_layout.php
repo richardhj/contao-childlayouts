@@ -32,7 +32,8 @@
 /**
  * Config
  */
-$GLOBALS['TL_DCA']['tl_layout']['config']['onload_callback'][] = array('tl_layout_childLayouts', 'updateChildLayout');
+$GLOBALS['TL_DCA']['tl_layout']['config']['onload_callback'][] = array('tl_layout_childLayouts', 'updatePalettes');
+$GLOBALS['TL_DCA']['tl_layout']['config']['onsubmit_callback'][] = array('tl_layout_childLayouts', 'updateChildLayouts');
 
 
 /**
@@ -70,7 +71,7 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = array
 	'exclude'               => true,
 	'inputType'             => 'select',
 	'options_callback'      => array('tl_layout_childLayouts', 'getPossibleParentLayouts'),
-	'eval'                  => array('chosen'=>true, 'tl_class'=>'w50')
+	'eval'                  => array('chosen'=>true, 'submitOnChange'=>true, 'tl_class'=>'w50')
 );
 
 $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
@@ -78,7 +79,7 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
 	'label'                 => &$GLOBALS['TL_LANG']['tl_layout']['specificFields'],
 	'exclude'               => true,
 	'inputType'             => 'checkbox',
-	'options_callback'      => array('tl_layout_childLayouts', 'getPaletteSections'),
+	'options_callback'      => array('tl_layout_childLayouts', 'getPalettes'),
 	'eval'                  => array('multiple'=>true, 'submitOnChange'=>true)
 );
 
@@ -99,6 +100,7 @@ class tl_layout_childLayouts extends Backend
 	 * @var string
 	 */
 	protected $strOriginalPalette;
+
 
 	/**
 	 * Set original palette
@@ -136,8 +138,9 @@ class tl_layout_childLayouts extends Backend
 
 	/**
 	 * Return all palette sections
+	 * @return array
 	 */
-	public function getPaletteSections()
+	public function getPalettes()
 	{
 		// Split palettes in legends
 		$arrPalettes = trimsplit(';', $this->strOriginalPalette);
@@ -165,9 +168,10 @@ class tl_layout_childLayouts extends Backend
 
 
 	/**
-	 * Check parent layout for changes and update child layout
+	 * Shorten the child layout palettes
+	 * @param DataContainer $dc
 	 */
-	public function updateChildLayout(DataContainer $dc)
+	public function updatePalettes(DataContainer $dc)
 	{
 		// Get child layout row
 		$objChildLayout = $this->Database->prepare("SELECT isChild,parentLayout,specificFields FROM tl_layout WHERE id=?")
@@ -181,9 +185,8 @@ class tl_layout_childLayouts extends Backend
 		}
 
 		// Modify palettes by means of user settings
-		$strTitleLegend = strstr($GLOBALS['TL_DCA']['tl_layout']['palettes']['default'], ';', true);
+		$strTitleLegend = strstr($this->strOriginalPalette, ';', true);
 
-		// Adjust palette
 		if (!$objChildLayout->specificFields)
 		{
 			$GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = $strTitleLegend;
@@ -192,46 +195,59 @@ class tl_layout_childLayouts extends Backend
 		{
 			$GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = $strTitleLegend . ';' . implode(';', deserialize($objChildLayout->specificFields));
 		}
+	}
 
-		// Get parent layout row
-		$objParentLayout = $this->Database->prepare("SELECT * FROM tl_layout WHERE id=?")
-		                                  ->limit(1)
-		                                  ->execute($objChildLayout->parentLayout);
 
-		$arrData = array();
+	/**
+	 * Update all child layouts belonging to parent layout
+	 * @param DataContainer $dc
+	 */
+	public function updateChildLayouts(DataContainer $dc)
+	{
+		// Get child layouts
+		$objChildLayouts = $this->Database->prepare("SELECT id,isChild,parentLayout,specificFields FROM tl_layout WHERE id IN (SELECT id FROM tl_layout WHERE parentLayout=?)")
+		                                  ->execute($dc->id);
 
-		while ($objParentLayout->next())
+		if ($objChildLayouts->numRows > 0)
 		{
+			// Get parent layout row
+			$objParentLayout = $this->Database->prepare("SELECT * FROM tl_layout WHERE isChild <> 1 AND id=?")
+			                        ->limit(1)
+			                        ->execute($dc->id);
+
 			$arrData = $objParentLayout->row();
-		}
 
-		// Delete specific columns
-		unset($arrData['id']);
-		unset($arrData['pid']);
-		unset($arrData['tstamp']);
-		unset($arrData['name']);
-		unset($arrData['fallback']);
-		unset($arrData['isChild']);
-		unset($arrData['parentLayout']);
-		unset($arrData['specificFields']);
+			// Delete specific columns
+			unset($arrData['id']);
+			unset($arrData['pid']);
+			unset($arrData['tstamp']);
+			unset($arrData['name']);
+			unset($arrData['fallback']);
+			unset($arrData['isChild']);
+			unset($arrData['parentLayout']);
+			unset($arrData['specificFields']);
 
-		if ($objChildLayout->specificFields)
-		{
-			foreach (deserialize($objChildLayout->specificFields) as $value)
+			while ($objChildLayouts->next())
 			{
-				$values = substr(strstr($value, ','), 1);
-				$values = trimsplit(',', $values);
-
-				foreach ($values as $field)
+				if ($objChildLayouts->specificFields)
 				{
-					unset($arrData[$field]);
+					foreach (deserialize($objChildLayouts->specificFields) as $value)
+					{
+						$values = substr(strstr($value, ','), 1);
+						$values = trimsplit(',', $values);
+
+						foreach ($values as $field)
+						{
+							unset($arrData[$field]);
+						}
+					}
 				}
+
+				// Update child layout row
+				$this->Database->prepare("UPDATE tl_layout %s WHERE id=?")
+				               ->set($arrData)
+				               ->execute($dc->id);
 			}
 		}
-
-		// Update child layout row
-		$this->Database->prepare("UPDATE tl_layout %s WHERE id=?")
-		               ->set($arrData)
-		               ->execute($dc->id);
 	}
 }
