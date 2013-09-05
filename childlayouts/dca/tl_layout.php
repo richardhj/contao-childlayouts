@@ -103,6 +103,12 @@ class tl_layout_childLayouts extends Backend
 
 
 	/**
+	 * The specific columns that must not be updated
+	 */
+	protected $arrSpecificColumns = array('id', 'pid', 'tstamp', 'name', 'fallback', 'isChild', 'parentLayout', 'specificFields');
+
+
+	/**
 	 * Set original palette
 	 */
 	public function __construct()
@@ -214,7 +220,7 @@ class tl_layout_childLayouts extends Backend
 			$arrData = $objParentLayout->row();
 
 			// Delete specific columns
-			foreach (array('id', 'pid', 'tstamp', 'name', 'fallback', 'isChild', 'parentLayout', 'specificFields') as $v)
+			foreach ($this->arrSpecificColumns as $v)
 			{
 				unset($arrData[$v]);
 			}
@@ -249,7 +255,7 @@ class tl_layout_childLayouts extends Backend
 				$arrData = $dc->activeRecord->row();
 
 				// Delete specific columns
-				foreach (array('id', 'pid', 'tstamp', 'name', 'fallback', 'isChild', 'parentLayout', 'specificFields') as $v)
+				foreach ($this->arrSpecificColumns as $v)
 				{
 					unset($arrData[$v]);
 				}
