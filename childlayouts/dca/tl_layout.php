@@ -204,16 +204,12 @@ class tl_layout_childLayouts extends Backend
 	 */
 	public function updateChildLayouts(DataContainer $dc)
 	{
-		// Get child layouts
-		$objChildLayouts = $this->Database->prepare("SELECT id,isChild,parentLayout,specificFields FROM tl_layout WHERE id IN (SELECT id FROM tl_layout WHERE parentLayout=?)")
-		                                  ->execute($dc->id);
-
-		if ($objChildLayouts->numRows > 0)
+		if ($dc->activeRecord->isChild)
 		{
-			// Get parent layout row
-			$objParentLayout = $this->Database->prepare("SELECT * FROM tl_layout WHERE isChild <> 1 AND id=?")
-			                        ->limit(1)
-			                        ->execute($dc->id);
+			// Get parent layout
+			$objParentLayout = $this->Database->prepare("SELECT * FROM tl_layout WHERE id=?")
+			                                  ->limit(1)
+			                                  ->execute($dc->activeRecord->parentLayout);
 
 			$arrData = $objParentLayout->row();
 
@@ -227,26 +223,66 @@ class tl_layout_childLayouts extends Backend
 			unset($arrData['parentLayout']);
 			unset($arrData['specificFields']);
 
-			while ($objChildLayouts->next())
+			if ($dc->activeRecord->specificFields)
 			{
-				if ($objChildLayouts->specificFields)
+				foreach (deserialize($dc->activeRecord->specificFields) as $value)
 				{
-					foreach (deserialize($objChildLayouts->specificFields) as $value)
-					{
-						$values = substr(strstr($value, ','), 1);
-						$values = trimsplit(',', $values);
+					$values = substr(strstr($value, ','), 1);
+					$values = trimsplit(',', $values);
 
-						foreach ($values as $field)
-						{
-							unset($arrData[$field]);
-						}
+					foreach ($values as $field)
+					{
+						unset($arrData[$field]);
 					}
 				}
+			}
 
-				// Update child layout row
-				$this->Database->prepare("UPDATE tl_layout %s WHERE id=?")
-				               ->set($arrData)
-				               ->execute($dc->id);
+			// Update child layout row
+			$this->Database->prepare("UPDATE tl_layout %s WHERE id=?")
+			               ->set($arrData)
+			               ->execute($dc->id);
+		}
+		else
+		{
+			// Get child layouts
+			$objChildLayouts = $this->Database->prepare("SELECT id,isChild,parentLayout,specificFields FROM tl_layout WHERE id IN (SELECT id FROM tl_layout WHERE parentLayout=?)")
+			                                  ->execute($dc->id);
+
+			if ($objChildLayouts->numRows > 0)
+			{
+				$arrData = $dc->activeRecord->row();
+
+				// Delete specific columns
+				unset($arrData['id']);
+				unset($arrData['pid']);
+				unset($arrData['tstamp']);
+				unset($arrData['name']);
+				unset($arrData['fallback']);
+				unset($arrData['isChild']);
+				unset($arrData['parentLayout']);
+				unset($arrData['specificFields']);
+
+				while ($objChildLayouts->next())
+				{
+					if ($objChildLayouts->specificFields)
+					{
+						foreach (deserialize($objChildLayouts->specificFields) as $value)
+						{
+							$values = substr(strstr($value, ','), 1);
+							$values = trimsplit(',', $values);
+
+							foreach ($values as $field)
+							{
+								unset($arrData[$field]);
+							}
+						}
+					}
+
+					// Update child layout row
+					$this->Database->prepare("UPDATE tl_layout %s WHERE id=?")
+					               ->set($arrData)
+					               ->execute($objChildLayouts->id);
+				}
 			}
 		}
 	}
