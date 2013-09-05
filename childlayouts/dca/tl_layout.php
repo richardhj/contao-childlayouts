@@ -118,7 +118,7 @@ class tl_layout_childLayouts extends Backend
 	 */
 	public function getPossibleParentLayouts()
 	{
-		$objLayout = $this->Database->execute("SELECT l.id, l.name, t.name AS theme FROM tl_layout l LEFT JOIN tl_theme t ON l.pid=t.id WHERE l.isChild <> 1 ORDER BY t.name, l.name");
+		$objLayout = $this->Database->query("SELECT l.id, l.name, t.name AS theme FROM tl_layout l LEFT JOIN tl_theme t ON l.pid=t.id WHERE l.isChild <> 1 ORDER BY t.name, l.name");
 
 		if ($objLayout->numRows < 1)
 		{
@@ -214,14 +214,10 @@ class tl_layout_childLayouts extends Backend
 			$arrData = $objParentLayout->row();
 
 			// Delete specific columns
-			unset($arrData['id']);
-			unset($arrData['pid']);
-			unset($arrData['tstamp']);
-			unset($arrData['name']);
-			unset($arrData['fallback']);
-			unset($arrData['isChild']);
-			unset($arrData['parentLayout']);
-			unset($arrData['specificFields']);
+			foreach (array('id', 'pid', 'tstamp', 'name', 'fallback', 'isChild', 'parentLayout', 'specificFields') as $v)
+			{
+				unset($arrData[$v]);
+			}
 
 			if ($dc->activeRecord->specificFields)
 			{
@@ -253,14 +249,10 @@ class tl_layout_childLayouts extends Backend
 				$arrData = $dc->activeRecord->row();
 
 				// Delete specific columns
-				unset($arrData['id']);
-				unset($arrData['pid']);
-				unset($arrData['tstamp']);
-				unset($arrData['name']);
-				unset($arrData['fallback']);
-				unset($arrData['isChild']);
-				unset($arrData['parentLayout']);
-				unset($arrData['specificFields']);
+				foreach (array('id', 'pid', 'tstamp', 'name', 'fallback', 'isChild', 'parentLayout', 'specificFields') as $v)
+				{
+					unset($arrData[$v]);
+				}
 
 				while ($objChildLayouts->next())
 				{
