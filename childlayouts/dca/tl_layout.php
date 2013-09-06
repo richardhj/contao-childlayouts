@@ -116,6 +116,17 @@ class tl_layout_childLayouts extends Backend
 		parent::__construct();
 
 		$this->strOriginalPalette = $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'];
+
+		// Workaround for Contao 3.1
+		if (version_compare(VERSION, '3.1', '>='))
+		{
+			if (!$GLOBALS['TL_DCA']['tl_layout']['originalPalettes']['default'])
+			{
+				$GLOBALS['TL_DCA']['tl_layout']['originalPalettes']['default'] = $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'];
+			}
+
+			$this->strOriginalPalette = $GLOBALS['TL_DCA']['tl_layout']['originalPalettes']['default'];
+		}
 	}
 
 
