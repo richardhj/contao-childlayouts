@@ -260,16 +260,7 @@ class tl_layout_childLayouts extends Backend
 
 			if ($dc->activeRecord->specificFields)
 			{
-				foreach (deserialize($dc->activeRecord->specificFields) as $value)
-				{
-					$values = substr(strstr($value, ','), 1);
-					$values = trimsplit(',', $values);
-
-					foreach ($values as $field)
-					{
-						unset($arrData[$field]);
-					}
-				}
+				$this->deleteSpecificColumns(deserialize($dc->activeRecord->specificFields), $arrData);
 			}
 
 			// Update child layout row
@@ -297,22 +288,42 @@ class tl_layout_childLayouts extends Backend
 				{
 					if ($objChildLayouts->specificFields)
 					{
-						foreach (deserialize($objChildLayouts->specificFields) as $value)
-						{
-							$values = substr(strstr($value, ','), 1);
-							$values = trimsplit(',', $values);
-
-							foreach ($values as $field)
-							{
-								unset($arrData[$field]);
-							}
-						}
+						$this->deleteSpecificColumns(deserialize($objChildLayouts->specificFields), $arrData);
 					}
 
 					// Update child layout row
 					$this->Database->prepare("UPDATE tl_layout %s WHERE id=?")
 					               ->set($arrData)
 					               ->execute($objChildLayouts->id);
+				}
+			}
+		}
+	}
+
+
+	/**
+	 * Delete specific columns
+	 * @param array
+	 * @param array
+	 */
+	protected function deleteSpecificColumns($arrSpecificFields, &$arrData)
+	{
+		foreach ($arrSpecificFields as $value)
+		{
+			$values = substr(strstr($value, ','), 1);
+			$values = trimsplit(',', $values);
+
+			foreach ($values as $field)
+			{
+				unset($arrData[$field]);
+
+				// Delete subpalette fields too
+				if (array_key_exists($field, $GLOBALS['TL_DCA']['tl_layout']['subpalettes']))
+				{
+					foreach (trimsplit(',', $GLOBALS['TL_DCA']['tl_layout']['subpalettes'][$field]) as $subfield)
+					{
+						unset($arrData[$subfield]);
+					}
 				}
 			}
 		}
