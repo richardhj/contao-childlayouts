@@ -62,7 +62,7 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['isChild'] = array
 	'label'                 => &$GLOBALS['TL_LANG']['tl_layout']['isChild'],
 	'exclude'               => true,
 	'inputType'             => 'checkbox',
-	'eval'                  => array('submitOnChange'=>true, 'tl_class'=>'w50 m12')
+	'eval'                  => array('submitOnChange'=>true, 'tl_class'=>'long')
 );
 
 $GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = array
@@ -71,7 +71,7 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = array
 	'exclude'               => true,
 	'inputType'             => 'select',
 	'options_callback'      => array('tl_layout_childLayouts', 'getPossibleParentLayouts'),
-	'eval'                  => array('chosen'=>true, 'submitOnChange'=>true, 'tl_class'=>'w50')
+	'eval'                  => array('chosen'=>true, 'submitOnChange'=>true, 'tl_class'=>'long')
 );
 
 $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
@@ -80,7 +80,7 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
 	'exclude'               => true,
 	'inputType'             => 'checkbox',
 	'options_callback'      => array('tl_layout_childLayouts', 'getPalettes'),
-	'eval'                  => array('multiple'=>true, 'submitOnChange'=>true)
+	'eval'                  => array('multiple'=>true, 'submitOnChange'=>true, 'tl_class'=>'long')
 );
 
 
@@ -114,6 +114,7 @@ class tl_layout_childLayouts extends Backend
 	public function __construct()
 	{
 		parent::__construct();
+
 		$this->strOriginalPalette = $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'];
 	}
 
