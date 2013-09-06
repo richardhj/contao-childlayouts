@@ -62,7 +62,8 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['isChild'] = array
 	'label'                 => &$GLOBALS['TL_LANG']['tl_layout']['isChild'],
 	'exclude'               => true,
 	'inputType'             => 'checkbox',
-	'eval'                  => array('submitOnChange'=>true, 'tl_class'=>'long')
+	'eval'                  => array('submitOnChange'=>true, 'tl_class'=>'long'),
+	'save_callback'         => array(array('tl_layout_childLayouts', 'checkIfChildPossible'))
 );
 
 $GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = array
@@ -127,6 +128,26 @@ class tl_layout_childLayouts extends Backend
 
 			$this->strOriginalPalette = $GLOBALS['TL_DCA']['tl_layout']['originalPalettes']['default'];
 		}
+	}
+
+
+	/**
+	 * Check if parent layouts exist and child layouts are possible
+	 */
+	public function checkIfChildPossible($varValue, DataContainer $dc)
+	{
+		if ($varValue)
+		{
+			$intPossibleParentLayouts = $this->Database->query("SELECT * FROM tl_layout WHERE isChild <> 1")
+			                                           ->numRows;
+
+			if ($intPossibleParentLayouts < 1)
+			{
+				throw new Exception($GLOBALS['TL_LANG']['ERR']['noPossibleParentLayouts']);
+			}
+		}
+
+		return $varValue;
 	}
 
 
