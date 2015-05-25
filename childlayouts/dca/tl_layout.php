@@ -21,9 +21,9 @@
  * Software Foundation website at <http://www.gnu.org/licenses/>.
  *
  * PHP version 5.3
- * @copyright  Richard Henkenjohann 2013
+ * @copyright  Richard Henkenjohann 2015
  * @author     Richard Henkenjohann
- * @package    Language
+ * @package    Childlayouts
  * @license    LGPL
  * @filesource
  */
@@ -32,7 +32,7 @@
 /**
  * Config
  */
-$GLOBALS['TL_DCA']['tl_layout']['config']['onload_callback'][] = array('tl_layout_childLayouts', 'updatePalettes');
+$GLOBALS['TL_DCA']['tl_layout']['config']['onload_callback'][] = array('tl_layout_childLayouts', 'updatePalette');
 $GLOBALS['TL_DCA']['tl_layout']['config']['onsubmit_callback'][] = array('tl_layout_childLayouts', 'updateChildLayouts');
 
 
@@ -89,9 +89,9 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
  * Class tl_layout_childLayouts
  *
  * Provide miscellaneous methods that are used by the data configuration array.
- * @copyright  Richard Henkenjohann 2013
+ * @copyright  Richard Henkenjohann 2015
  * @author     Richard Henkenjohann
- * @package    Controller
+ * @package    ChildLayouts
  */
 class tl_layout_childLayouts extends Backend
 {
@@ -138,7 +138,7 @@ class tl_layout_childLayouts extends Backend
 	{
 		if ($varValue)
 		{
-			$intPossibleParentLayouts = $this->Database->query("SELECT * FROM tl_layout WHERE isChild <> 1")
+			$intPossibleParentLayouts = $this->Database->query("SELECT id FROM tl_layout WHERE isChild <> 1")
 			                                           ->numRows;
 
 			if ($intPossibleParentLayouts < 1)
@@ -210,7 +210,7 @@ class tl_layout_childLayouts extends Backend
 	 * Shorten the child layout palettes
 	 * @param DataContainer $dc
 	 */
-	public function updatePalettes(DataContainer $dc)
+	public function updatePalette(DataContainer $dc)
 	{
 		// Get child layout row
 		$objChildLayout = $this->Database->prepare("SELECT isChild,parentLayout,specificFields FROM tl_layout WHERE id=?")
@@ -260,7 +260,7 @@ class tl_layout_childLayouts extends Backend
 
 			if ($dc->activeRecord->specificFields)
 			{
-				$this->deleteSpecificColumns(deserialize($dc->activeRecord->specificFields), $arrData);
+				$arrData = $this->deleteSpecificColumns(deserialize($dc->activeRecord->specificFields), $arrData);
 			}
 
 			// Update child layout row
@@ -276,7 +276,9 @@ class tl_layout_childLayouts extends Backend
 
 			if ($objChildLayouts->numRows > 0)
 			{
-				$arrData = $dc->activeRecord->row();
+				$arrData = $this->Database->prepare("SELECT * FROM tl_layout WHERE id=?")
+				                          ->execute($dc->id)
+				                          ->row(); # $dc->activeRecord->row() contains obsolete data
 
 				// Delete specific columns
 				foreach ($this->arrSpecificColumns as $v)
@@ -286,14 +288,16 @@ class tl_layout_childLayouts extends Backend
 
 				while ($objChildLayouts->next())
 				{
+					$arrRowData = $arrData;
+
 					if ($objChildLayouts->specificFields)
 					{
-						$this->deleteSpecificColumns(deserialize($objChildLayouts->specificFields), $arrData);
+						$arrRowData = $this->deleteSpecificColumns(deserialize($objChildLayouts->specificFields), $arrData);
 					}
 
 					// Update child layout row
 					$this->Database->prepare("UPDATE tl_layout %s WHERE id=?")
-					               ->set($arrData)
+					               ->set($arrRowData)
 					               ->execute($objChildLayouts->id);
 				}
 			}
@@ -305,8 +309,9 @@ class tl_layout_childLayouts extends Backend
 	 * Delete specific columns
 	 * @param array
 	 * @param array
+	 * @return array
 	 */
-	protected function deleteSpecificColumns($arrSpecificFields, &$arrData)
+	protected function deleteSpecificColumns($arrSpecificFields, $arrData)
 	{
 		foreach ($arrSpecificFields as $value)
 		{
@@ -327,5 +332,7 @@ class tl_layout_childLayouts extends Backend
 				}
 			}
 		}
+
+		return $arrData;
 	}
 }
