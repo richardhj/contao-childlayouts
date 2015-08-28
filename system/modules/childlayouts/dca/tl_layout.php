@@ -1,31 +1,11 @@
-<?php if (!defined('TL_ROOT')) die('You cannot access this file directly!');
+<?php
 
 /**
  * Contao Open Source CMS
- * Copyright (C) 2005-2011 Leo Feyer
  *
- * Formerly known as TYPOlight Open Source CMS.
+ * Copyright (c) 2005-2015 Leo Feyer
  *
- * This program is free software: you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation, either
- * version 3 of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program. If not, please visit the Free
- * Software Foundation website at <http://www.gnu.org/licenses/>.
- *
- * PHP version 5.3
- * @copyright  Richard Henkenjohann 2015
- * @author     Richard Henkenjohann
- * @package    Childlayouts
- * @license    LGPL
- * @filesource
+ * @license LGPL-3.0+
  */
 
 
@@ -63,7 +43,8 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['isChild'] = array
 	'exclude'               => true,
 	'inputType'             => 'checkbox',
 	'eval'                  => array('submitOnChange'=>true, 'tl_class'=>'long'),
-	'save_callback'         => array(array('tl_layout_childLayouts', 'checkIfChildPossible'))
+	'save_callback'         => array(array('tl_layout_childLayouts', 'checkIfChildPossible')),
+	'sql'                   => "char(1) NOT NULL default ''"
 );
 
 $GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = array
@@ -72,7 +53,8 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = array
 	'exclude'               => true,
 	'inputType'             => 'select',
 	'options_callback'      => array('tl_layout_childLayouts', 'getPossibleParentLayouts'),
-	'eval'                  => array('chosen'=>true, 'submitOnChange'=>true, 'tl_class'=>'long')
+	'eval'                  => array('chosen'=>true, 'submitOnChange'=>true, 'tl_class'=>'long'),
+	'sql'                   => "int(10) unsigned NOT NULL default '0'",
 );
 
 $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
@@ -81,7 +63,8 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
 	'exclude'               => true,
 	'inputType'             => 'checkbox',
 	'options_callback'      => array('tl_layout_childLayouts', 'getPalettes'),
-	'eval'                  => array('multiple'=>true, 'submitOnChange'=>true, 'tl_class'=>'long')
+	'eval'                  => array('multiple'=>true, 'submitOnChange'=>true, 'tl_class'=>'long'),
+	'sql'                   => "blob NULL"
 );
 
 
@@ -89,6 +72,7 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['specificFields'] = array
  * Class tl_layout_childLayouts
  *
  * Provide miscellaneous methods that are used by the data configuration array.
+ *
  * @copyright  Richard Henkenjohann 2015
  * @author     Richard Henkenjohann
  * @package    ChildLayouts
@@ -98,6 +82,7 @@ class tl_layout_childLayouts extends Backend
 
 	/**
 	 * The original (unshortened) palette
+	 *
 	 * @var string
 	 */
 	protected $strOriginalPalette;
@@ -118,7 +103,7 @@ class tl_layout_childLayouts extends Backend
 
 		$this->strOriginalPalette = $GLOBALS['TL_DCA']['tl_layout']['palettes']['default'];
 
-		// Workaround for Contao 3.1
+		// Workaround for Contao >= 3.1
 		if (version_compare(VERSION, '3.1', '>='))
 		{
 			if (!$GLOBALS['TL_DCA']['tl_layout']['originalPalettes']['default'])
@@ -133,6 +118,12 @@ class tl_layout_childLayouts extends Backend
 
 	/**
 	 * Check if parent layouts exist and child layouts are possible
+	 *
+	 * @param mixed         $varValue
+	 * @param DataContainer $dc
+	 *
+	 * @return mixed
+	 * @throws Exception
 	 */
 	public function checkIfChildPossible($varValue, DataContainer $dc)
 	{
@@ -153,10 +144,12 @@ class tl_layout_childLayouts extends Backend
 
 	/**
 	 * Return all page layouts grouped by theme
+	 *
 	 * @return array
 	 */
 	public function getPossibleParentLayouts()
 	{
+		/** @var Database\Result $objLayout */
 		$objLayout = $this->Database->query("SELECT l.id, l.name, t.name AS theme FROM tl_layout l LEFT JOIN tl_theme t ON l.pid=t.id WHERE l.isChild <> 1 ORDER BY t.name, l.name");
 
 		if ($objLayout->numRows < 1)
@@ -176,7 +169,8 @@ class tl_layout_childLayouts extends Backend
 
 
 	/**
-	 * Return all palette sections
+	 * Return all palettes as options_callback
+	 *
 	 * @return array
 	 */
 	public function getPalettes()
@@ -208,11 +202,12 @@ class tl_layout_childLayouts extends Backend
 
 	/**
 	 * Shorten the child layout palettes
+	 *
 	 * @param DataContainer $dc
 	 */
 	public function updatePalette(DataContainer $dc)
 	{
-		// Get child layout row
+		// Get child layout
 		$objChildLayout = $this->Database->prepare("SELECT isChild,parentLayout,specificFields FROM tl_layout WHERE id=?")
 		                                 ->limit(1)
 		                                 ->execute($dc->id);
@@ -238,18 +233,16 @@ class tl_layout_childLayouts extends Backend
 
 
 	/**
-	 * Update all child layouts belonging to parent layout
+	 * Save child layout OR update all child layouts belonging to parent layout
+	 *
 	 * @param DataContainer $dc
 	 */
 	public function updateChildLayouts(DataContainer $dc)
 	{
+		// Is child layout
 		if ($dc->activeRecord->isChild)
 		{
-			// Get parent layout
-			$objParentLayout = $this->Database->prepare("SELECT * FROM tl_layout WHERE id=?")
-			                                  ->limit(1)
-			                                  ->execute($dc->activeRecord->parentLayout);
-
+			$objParentLayout = LayoutModel::findByPk($dc->activeRecord->parentLayout);
 			$arrData = $objParentLayout->row();
 
 			// Delete specific columns
@@ -260,25 +253,24 @@ class tl_layout_childLayouts extends Backend
 
 			if ($dc->activeRecord->specificFields)
 			{
-				$arrData = $this->deleteSpecificColumns(deserialize($dc->activeRecord->specificFields), $arrData);
+				$arrData = $this->deleteSpecificColumns($arrData, $dc);
 			}
 
-			// Update child layout row
+			// Update child layout
 			$this->Database->prepare("UPDATE tl_layout %s WHERE id=?")
 			               ->set($arrData)
 			               ->execute($dc->id);
 		}
+		// Might be parent layout
 		else
 		{
-			// Get child layouts
+			/** @var Database\Result $objChildLayouts */
 			$objChildLayouts = $this->Database->prepare("SELECT id,isChild,parentLayout,specificFields FROM tl_layout WHERE id IN (SELECT id FROM tl_layout WHERE parentLayout=?)")
 			                                  ->execute($dc->id);
 
 			if ($objChildLayouts->numRows > 0)
 			{
-				$arrData = $this->Database->prepare("SELECT * FROM tl_layout WHERE id=?")
-				                          ->execute($dc->id)
-				                          ->row(); # $dc->activeRecord->row() contains obsolete data
+				$arrData = LayoutModel::findByPk($dc->id)->row(); # $dc->activeRecord->row() contains obsolete data
 
 				// Delete specific columns
 				foreach ($this->arrSpecificColumns as $v)
@@ -292,10 +284,10 @@ class tl_layout_childLayouts extends Backend
 
 					if ($objChildLayouts->specificFields)
 					{
-						$arrRowData = $this->deleteSpecificColumns(deserialize($objChildLayouts->specificFields), $arrData);
+						$arrRowData = $this->deleteSpecificColumns($arrData, $dc);
 					}
 
-					// Update child layout row
+					// Update child layout
 					$this->Database->prepare("UPDATE tl_layout %s WHERE id=?")
 					               ->set($arrRowData)
 					               ->execute($objChildLayouts->id);
@@ -307,30 +299,29 @@ class tl_layout_childLayouts extends Backend
 
 	/**
 	 * Delete specific columns
-	 * @param array
-	 * @param array
-	 * @return array
+	 *
+	 * @param array         $arrData The layout's data set
+	 * @param DataContainer $dc      The layout's data container
+	 *
+	 * @return array The data set written in database
 	 */
-	protected function deleteSpecificColumns($arrSpecificFields, $arrData)
+	protected function deleteSpecificColumns($arrData, $dc)
 	{
-		foreach ($arrSpecificFields as $value)
+		// Get current palette including all subpalette fields
+		$arrCurrentPalette = trimsplit('[,;]', $dc->getPalette());
+
+		// Delete each field
+		foreach ($arrCurrentPalette as $field)
 		{
-			$values = substr(strstr($value, ','), 1);
-			$values = trimsplit(',', $values);
-
-			foreach ($values as $field)
+			// Skip non-field values
+			if (preg_match('/^{.+?}$/', $field) // Legend
+				|| preg_match('/^\[.*\]$/', $field)
+				|| $field == '[EOF]')
 			{
-				unset($arrData[$field]);
-
-				// Delete subpalette fields too
-				if (array_key_exists($field, $GLOBALS['TL_DCA']['tl_layout']['subpalettes']))
-				{
-					foreach (trimsplit(',', $GLOBALS['TL_DCA']['tl_layout']['subpalettes'][$field]) as $subfield)
-					{
-						unset($arrData[$subfield]);
-					}
-				}
+				continue;
 			}
+
+			unset ($arrData[$field]);
 		}
 
 		return $arrData;
