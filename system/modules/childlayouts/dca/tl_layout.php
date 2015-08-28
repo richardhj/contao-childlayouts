@@ -253,7 +253,7 @@ class tl_layout_childLayouts extends Backend
 
 			if ($dc->activeRecord->specificFields)
 			{
-				$arrData = $this->deleteSpecificColumns($arrData, $dc);
+				$arrData = $this->deleteSpecificColumns(deserialize($dc->activeRecord->specificFields), $arrData, $dc->id);
 			}
 
 			// Update child layout
@@ -284,7 +284,7 @@ class tl_layout_childLayouts extends Backend
 
 					if ($objChildLayouts->specificFields)
 					{
-						$arrRowData = $this->deleteSpecificColumns($arrData, $dc);
+						$arrRowData = $this->deleteSpecificColumns(deserialize($objChildLayouts->specificFields), $arrData, $objChildLayouts->id);
 					}
 
 					// Update child layout
@@ -300,28 +300,56 @@ class tl_layout_childLayouts extends Backend
 	/**
 	 * Delete specific columns
 	 *
-	 * @param array         $arrData The layout's data set
-	 * @param DataContainer $dc      The layout's data container
+	 * @param array   $arrSpecificFields The specific boxes with its specific fields as comma separated string
+	 * @param array   $arrData           The layout data set
+	 * @param integer $intId             The layout's id
 	 *
 	 * @return array The data set written in database
 	 */
-	protected function deleteSpecificColumns($arrData, $dc)
+	protected function deleteSpecificColumns($arrSpecificFields, $arrData, $intId)
 	{
-		// Get current palette including all subpalette fields
-		$arrCurrentPalette = trimsplit('[,;]', $dc->getPalette());
+		$objFields = LayoutModel::findByPk($intId);
+		$arrUnset = array();
 
-		// Delete each field
-		foreach ($arrCurrentPalette as $field)
+		// Process specific fields
+		foreach ($arrSpecificFields as $box)
 		{
-			// Skip non-field values
-			if (preg_match('/^{.+?}$/', $field) // Legend
-				|| preg_match('/^\[.*\]$/', $field)
-				|| $field == '[EOF]')
-			{
-				continue;
-			}
+			$strBoxFields = substr(strstr($box, ','), 1);
+			$arrUnset = array_merge($arrUnset, trimsplit(',', $strBoxFields));
+		}
 
-			unset ($arrData[$field]);
+		// Fetch subpalettes fields
+		foreach ($GLOBALS['TL_DCA'][$objFields->getTable()]['palettes']['__selector__'] as $name)
+		{
+			$trigger = $objFields->$name;
+
+			if ($trigger != '' && in_array($name, $arrUnset))
+			{
+				if ($GLOBALS['TL_DCA'][$objFields->getTable()]['fields'][$name]['inputType'] == 'checkbox' && !$GLOBALS['TL_DCA'][$objFields->getTable()]['fields'][$name]['eval']['multiple'])
+				{
+					// Look for a subpalette
+					if (strlen($GLOBALS['TL_DCA'][$objFields->getTable()]['subpalettes'][$name]))
+					{
+						$arrUnset = array_merge($arrUnset, trimsplit(',', $GLOBALS['TL_DCA'][$objFields->getTable()]['subpalettes'][$name]));
+					}
+				}
+				else
+				{
+					$key = $name .'_'. $trigger;
+
+					// Look for a subpalette
+					if (strlen($GLOBALS['TL_DCA'][$objFields->getTable()]['subpalettes'][$key]))
+					{
+						$arrUnset = array_merge($arrUnset, trimsplit(',', $GLOBALS['TL_DCA'][$objFields->getTable()]['subpalettes'][$key]));
+					}
+				}
+			}
+		}
+
+		// Delete fields
+		foreach ($arrUnset as $unset)
+		{
+			unset($arrData[$unset]);
 		}
 
 		return $arrData;
