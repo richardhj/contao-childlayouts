@@ -32,6 +32,11 @@ class Dca
 	 */
 	static public function getOriginalPalette()
 	{
+		if (!self::$strOriginalPalette)
+		{
+			self::setOriginalPalette($GLOBALS['TL_DCA']['tl_layout']['palettes']['default']);
+		}
+		
 		return self::$strOriginalPalette;
 	}
 
