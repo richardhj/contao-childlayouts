@@ -26,7 +26,10 @@
 		"contao": {
 			"sources": {
 				"contao": "system/modules/childlayouts"
-			}
+			},
+			"runonce": [
+                "system/modules/childlayouts/config/runonce/update_to_1.1.php"
+            ]
 		}
 	}
 }
