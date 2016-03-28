@@ -76,7 +76,7 @@ class Helper
 				{
 					if ($objChildLayouts->specificLegends)
 					{
-						$this->deleteSpecificColumns($objChildLayouts->specificFields, $arrData);
+						$this->deleteSpecificColumns($objChildLayouts->specificLegends, $arrData);
 					}
 
 					// Update child layout row
