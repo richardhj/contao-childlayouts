@@ -41,7 +41,7 @@ class Helper
 			}
 
 			// Delete columns specific for this child layout
-			if ($dc->activeRecord->specificFields)
+			if ($dc->activeRecord->specificLegends)
 			{
 				$this->deleteSpecificColumns($dc->activeRecord->specificLegends, $arrData);
 			}
