@@ -43,7 +43,7 @@ class Helper
 			// Delete columns specific for this child layout
 			if ($dc->activeRecord->specificLegends)
 			{
-				$this->deleteSpecificColumns($dc->activeRecord->specificLegends, $arrData);
+				$this->deleteSpecificColumns($dc->activeRecord->specificLegends, $arrData, $dc->activeRecord->row());
 			}
 
 			// Save parent data in database
@@ -76,7 +76,7 @@ class Helper
 				{
 					if ($objChildLayouts->specificLegends)
 					{
-						$this->deleteSpecificColumns($objChildLayouts->specificLegends, $arrData);
+						$this->deleteSpecificColumns($objChildLayouts->specificLegends, $arrData, $objChildLayouts->row());
 					}
 
 					// Update child layout row
@@ -93,10 +93,11 @@ class Helper
 	/**
 	 * Delete specific columns
 	 *
-	 * @param mixed
-	 * @param array
+	 * @param mixed $arrSpecificLegends
+	 * @param array $arrData     The parent layout's row
+	 * @param array $arrChildRow The child layout's row
 	 */
-	protected function deleteSpecificColumns($arrSpecificLegends, &$arrData)
+	protected function deleteSpecificColumns($arrSpecificLegends, &$arrData, $arrChildRow)
 	{
 		if (!is_array($arrSpecificLegends))
 		{
@@ -110,14 +111,24 @@ class Helper
 
 			foreach ($fields as $field)
 			{
+				// Delete field
 				unset($arrData[$field]);
 
-				// Delete subpalette fields too
-				if (array_key_exists($field, $GLOBALS['TL_DCA']['tl_layout']['subpalettes']))
+				$keys = array
+				(
+					$field, // For deleting subpalette fields
+					$field . '_' . $arrChildRow[$field] // For deleting subpalette fields with trigger
+				);
+
+				// Delete subpalette fields
+				foreach ($keys as $key)
 				{
-					foreach (trimsplit(',', $GLOBALS['TL_DCA']['tl_layout']['subpalettes'][$field]) as $subfield)
+					if (array_key_exists($key, $GLOBALS['TL_DCA']['tl_layout']['subpalettes']))
 					{
-						unset($arrData[$subfield]);
+						foreach (trimsplit(',', $GLOBALS['TL_DCA']['tl_layout']['subpalettes'][$key]) as $subfield)
+						{
+							unset($arrData[$subfield]);
+						}
 					}
 				}
 			}
