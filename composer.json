@@ -1,35 +1,36 @@
 {
-	"name": "richardhj/contao-childlayouts",
-	"description": "ChildLayouts extension for Contao OpenSource CMS",
-	"keywords": ["contao", "childlayouts"],
-	"type": "contao-module",
-	"license": "LGPL-3.0+",
-	"authors": [
-		{
-			"name": "Richard Henkenjohann",
-			"email": "richardhenkenjohann@googlemail.com",
-			"role": "Developer"
-		}
-	],
-	"support": {
-		"issues": "https://github.com/richardhj/contao-childlayouts/issues",
-		"source": "https://github.com/richardhj/contao-childlayouts"
-	},
-	"require": {
-		"php": ">=5.3",
-		"contao/core": ">=3.1"
-	},
-	"replace": {
-		"contao-legacy/childlayouts": "*"
-	},
-	"extra": {
-		"contao": {
-			"sources": {
-				"contao": "system/modules/childlayouts"
-			},
-			"runonce": [
+    "name": "richardhj/contao-childlayouts",
+    "description": "ChildLayouts extension for Contao OpenSource CMS",
+    "keywords": ["contao", "childlayouts"],
+    "type": "contao-module",
+    "license": "LGPL-3.0+",
+    "authors": [
+        {
+            "name": "Richard Henkenjohann",
+            "email": "richardhenkenjohann@googlemail.com",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/richardhj/contao-childlayouts/issues",
+        "source": "https://github.com/richardhj/contao-childlayouts"
+    },
+    "require": {
+        "php": ">=5.3",
+        "contao/core-bundle": "^3.1 || ^4.3",
+        "contao-community-alliance/composer-plugin": "~2.4 || ~3.0"
+    },
+    "replace": {
+        "contao-legacy/childlayouts": "*"
+    },
+    "extra": {
+        "contao": {
+            "sources": {
+                "contao": "system/modules/childlayouts"
+            },
+            "runonce": [
                 "system/modules/childlayouts/config/runonce/update_to_1.1.php"
             ]
-		}
-	}
+        }
+    }
 }
