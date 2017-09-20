@@ -108,8 +108,15 @@ class Helper
             $fields  = trimsplit(',', $palette[3]);
 
             foreach ($fields as $field) {
+                $config = $GLOBALS['TL_DCA']['tl_layout']['fields'][$field];
+
                 // Delete field
                 unset($data[$field]);
+
+                // Delete orderField which is not part of the palette. See #5
+                if ('fileTree' === $config['inputType'] && isset($config['eval']['orderField'])) {
+                    unset($data[$config['eval']['orderField']]);
+                }
 
                 $keys = [
                     $field, // For deleting subpalette fields
