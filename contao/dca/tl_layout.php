@@ -1,31 +1,31 @@
 <?php
+
 /**
- * ChildLayouts extension for Contao Open Source CMS gives you the possibility to modify only certain layout sections
- * by defining one parent layout all other settings are inherited from.
+ * This file is part of richardhj/contao-childlayouts.
  *
- * Copyright (c) 2016 Richard Henkenjohann
+ * Copyright (c) 2013-2017 Richard Henkenjohann
  *
- * @package ChildLayouts
- * @author  Richard Henkenjohann <richardhenkenjohann@googlemail.com>
+ * @author    Richard Henkenjohann <richardhenkenjohann@googlemail.com>
+ * @copyright 2013-2017 Richard Henkenjohann
+ * @license   https://github.com/richardhj/contao-childlayouts/blob/master/LICENSE LGPL-3.0
  */
 
 
 /**
  * Config
  */
-$GLOBALS['TL_DCA']['tl_layout']['config']['onload_callback'][] = array('ChildLayouts\Dca', 'updatePalettes');
-$GLOBALS['TL_DCA']['tl_layout']['config']['onsubmit_callback'][] = array('ChildLayouts\Helper', 'updateChildLayouts');
+$GLOBALS['TL_DCA']['tl_layout']['config']['onload_callback'][]   = ['ChildLayouts\Dca', 'updatePalettes'];
+$GLOBALS['TL_DCA']['tl_layout']['config']['onsubmit_callback'][] = ['ChildLayouts\Helper', 'updateChildLayouts'];
 
 
 /**
  * Palettes
  */
 $GLOBALS['TL_DCA']['tl_layout']['palettes']['__selector__'][] = 'isChild';
-$GLOBALS['TL_DCA']['tl_layout']['palettes']['default'] = str_replace
-(
-	';{header_legend}',
-	',isChild;{header_legend}',
-	$GLOBALS['TL_DCA']['tl_layout']['palettes']['default']
+$GLOBALS['TL_DCA']['tl_layout']['palettes']['default']        = str_replace(
+    ';{header_legend}',
+    ',isChild;{header_legend}',
+    $GLOBALS['TL_DCA']['tl_layout']['palettes']['default']
 );
 
 
@@ -38,32 +38,41 @@ $GLOBALS['TL_DCA']['tl_layout']['subpalettes']['isChild'] = 'parentLayout,specif
 /**
  * Fields
  */
-$GLOBALS['TL_DCA']['tl_layout']['fields']['isChild'] = array
-(
-	'label'         => &$GLOBALS['TL_LANG']['tl_layout']['isChild'],
-	'exclude'       => true,
-	'inputType'     => 'checkbox',
-	'eval'          => array('submitOnChange' => true, 'tl_class' => 'long'),
-	'save_callback' => array(array('ChildLayouts\Dca', 'checkIfChildPossible')),
-	'sql'           => "char(1) NOT NULL default ''"
-);
+$GLOBALS['TL_DCA']['tl_layout']['fields']['isChild'] = [
+    'label'         => &$GLOBALS['TL_LANG']['tl_layout']['isChild'],
+    'exclude'       => true,
+    'inputType'     => 'checkbox',
+    'eval'          => [
+        'submitOnChange' => true,
+        'tl_class'       => 'long'
+    ],
+    'save_callback' => [['ChildLayouts\Dca', 'checkIfChildPossible']],
+    'sql'           => "char(1) NOT NULL default ''"
+];
 
-$GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = array
-(
-	'label'            => &$GLOBALS['TL_LANG']['tl_layout']['parentLayout'],
-	'exclude'          => true,
-	'inputType'        => 'select',
-	'options_callback' => array('ChildLayouts\Dca', 'getPossibleParentLayouts'),
-	'eval'             => array('chosen' => true, 'submitOnChange' => true, 'tl_class' => 'long'),
-	'sql'              => "int(10) unsigned NOT NULL default '0'"
-);
+$GLOBALS['TL_DCA']['tl_layout']['fields']['parentLayout'] = [
+    'label'            => &$GLOBALS['TL_LANG']['tl_layout']['parentLayout'],
+    'exclude'          => true,
+    'inputType'        => 'select',
+    'options_callback' => ['ChildLayouts\Dca', 'getPossibleParentLayouts'],
+    'eval'             => [
+        'chosen'         => true,
+        'submitOnChange' => true,
+        'tl_class'       => 'long'
+    ],
+    'sql'              => "int(10) unsigned NOT NULL default '0'"
+];
 
-$GLOBALS['TL_DCA']['tl_layout']['fields']['specificLegends'] = array
-(
-	'label'            => &$GLOBALS['TL_LANG']['tl_layout']['specificLegends'],
-	'exclude'          => true,
-	'inputType'        => 'checkbox',
-	'options_callback' => array('ChildLayouts\Dca', 'getPalettes'),
-	'eval'             => array('multiple' => true, 'csv' => ',', 'submitOnChange' => true, 'tl_class' => 'long'),
-	'sql'              => "varchar(255) NOT NULL default ''"
-);
+$GLOBALS['TL_DCA']['tl_layout']['fields']['specificLegends'] = [
+    'label'            => &$GLOBALS['TL_LANG']['tl_layout']['specificLegends'],
+    'exclude'          => true,
+    'inputType'        => 'checkbox',
+    'options_callback' => ['ChildLayouts\Dca', 'getPalettes'],
+    'eval'             => [
+        'multiple'       => true,
+        'csv'            => ',',
+        'submitOnChange' => true,
+        'tl_class'       => 'long'
+    ],
+    'sql'              => "varchar(255) NOT NULL default ''"
+];

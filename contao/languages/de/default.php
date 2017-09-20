@@ -1,12 +1,13 @@
 <?php
+
 /**
- * ChildLayouts extension for Contao Open Source CMS gives you the possibility to modify only certain layout sections
- * by defining one parent layout all other settings are inherited from.
+ * This file is part of richardhj/contao-childlayouts.
  *
- * Copyright (c) 2016 Richard Henkenjohann
+ * Copyright (c) 2013-2017 Richard Henkenjohann
  *
- * @package ChildLayouts
- * @author  Richard Henkenjohann <richardhenkenjohann@googlemail.com>
+ * @author    Richard Henkenjohann <richardhenkenjohann@googlemail.com>
+ * @copyright 2013-2017 Richard Henkenjohann
+ * @license   https://github.com/richardhj/contao-childlayouts/blob/master/LICENSE LGPL-3.0
  */
 
 

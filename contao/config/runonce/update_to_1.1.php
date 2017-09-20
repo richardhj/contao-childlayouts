@@ -1,52 +1,47 @@
 <?php
+
 /**
- * ChildLayouts extension for Contao Open Source CMS gives you the possibility to modify only certain layout sections
- * by defining one parent layout all other settings are inherited from.
+ * This file is part of richardhj/contao-childlayouts.
  *
- * Copyright (c) 2016 Richard Henkenjohann
+ * Copyright (c) 2013-2017 Richard Henkenjohann
  *
- * @package ChildLayouts
- * @author  Richard Henkenjohann <richardhenkenjohann@googlemail.com>
+ * @author    Richard Henkenjohann <richardhenkenjohann@googlemail.com>
+ * @copyright 2013-2017 Richard Henkenjohann
+ * @license   https://github.com/richardhj/contao-childlayouts/blob/master/LICENSE LGPL-3.0
  */
 
 
-class ChildLayoutRunOnce extends Controller
+class ChildLayoutRunOnce
 {
-	public function run()
-	{
-		try
-		{
-			$objChildLayouts = LayoutModel::findBy(
-				array(
-					'isChild=1',
-					'specificFields<>\'\'',
-					'specificLegends=\'\''
-				),
-				array()
-			);
-		}
-		catch (Exception $e)
-		{
-			return;
-		}
+    public function run()
+    {
+        try {
+            $objChildLayouts = LayoutModel::findBy(
+                [
+                    'isChild=1',
+                    'specificFields<>\'\'',
+                    'specificLegends=\'\''
+                ],
+                []
+            );
+        } catch (Exception $e) {
+            return;
+        }
 
-		while (null !== $objChildLayouts && $objChildLayouts->next())
-		{
-			$arrFields = deserialize($objChildLayouts->specificFields);
+        while (null !== $objChildLayouts && $objChildLayouts->next()) {
+            $fields  = deserialize($objChildLayouts->specificFields);
+            $legends = [];
 
-			$arrLegends = array();
+            foreach ($fields as $section) {
+                preg_match('/\{([^\}]+?)\}/', $section, $matches);
+                $legends[] = strstr($matches[1], ':', true) ?: $matches[1];
+            }
 
-			foreach ($arrFields as $section)
-			{
-				preg_match('/\{([^\}]+?)\}/', $section, $matches);
-				$arrLegends[] = strstr($matches[1], ':', true) ?: $matches[1];
-			}
-
-			$objChildLayouts->specificLegends = implode(',', $arrLegends);
-			$objChildLayouts->save();
-		}
-	}
+            $objChildLayouts->specificLegends = implode(',', $legends);
+            $objChildLayouts->save();
+        }
+    }
 }
 
-$objRunOnce = new ChildLayoutRunOnce();
-$objRunOnce->run();
+$childLayoutsRunOnce = new ChildLayoutRunOnce();
+$childLayoutsRunOnce->run();

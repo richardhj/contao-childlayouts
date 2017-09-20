@@ -1,177 +1,175 @@
 <?php
+
 /**
- * ChildLayouts extension for Contao Open Source CMS gives you the possibility to modify only certain layout sections
- * by defining one parent layout all other settings are inherited from.
+ * This file is part of richardhj/contao-childlayouts.
  *
- * Copyright (c) 2016 Richard Henkenjohann
+ * Copyright (c) 2013-2017 Richard Henkenjohann
  *
- * @package ChildLayouts
- * @author  Richard Henkenjohann <richardhenkenjohann@googlemail.com>
+ * @author    Richard Henkenjohann <richardhenkenjohann@googlemail.com>
+ * @copyright 2013-2017 Richard Henkenjohann
+ * @license   https://github.com/richardhj/contao-childlayouts/blob/master/LICENSE LGPL-3.0
  */
 
 namespace ChildLayouts;
 
+use Contao\Database;
+use Contao\DataContainer;
+use Contao\LayoutModel;
+
 
 /**
  * Class Helper
+ *
  * @package ChildLayouts
  */
 class Helper
 {
 
-	/**
-	 * Update all child layouts belonging to parent layout
-	 * @category onsubmit_callback
-	 *
-	 * @param \DataContainer $dc
-	 */
-	public function updateChildLayouts(\DataContainer $dc)
-	{
-		if ($dc->activeRecord->isChild)
-		{
-			/** @type \Model $objParentLayout */
-			$objParentLayout = \LayoutModel::findByPk($dc->activeRecord->parentLayout);
+    /**
+     * Update all child layouts belonging to parent layout
+     *
+     * @category onsubmit_callback
+     *
+     * @param DataContainer $dc
+     */
+    public function updateChildLayouts(DataContainer $dc)
+    {
+        if ($dc->activeRecord->isChild) {
+            $parentLayout = LayoutModel::findByPk($dc->activeRecord->parentLayout);
+            $data         = $parentLayout->row();
 
-			$arrData = $objParentLayout->row();
+            // Delete columns that must not be overridden
+            foreach (self::getColumnsToPersist() as $column) {
+                unset($data[$column]);
+            }
 
-			// Delete columns that must not be overridden
-			foreach (self::getColumnsToPersist() as $v)
-			{
-				unset($arrData[$v]);
-			}
+            // Delete columns specific for this child layout
+            if ($dc->activeRecord->specificLegends) {
+                $this->deleteSpecificColumns($dc->activeRecord->specificLegends, $data, $dc->activeRecord->row());
+            }
 
-			// Delete columns specific for this child layout
-			if ($dc->activeRecord->specificLegends)
-			{
-				$this->deleteSpecificColumns($dc->activeRecord->specificLegends, $arrData, $dc->activeRecord->row());
-			}
+            // Save parent data in database
+            // Do not use the LayoutModel here
+            Database::getInstance()->prepare("UPDATE tl_layout %s WHERE id=?")
+                ->set($data)
+                ->execute($dc->id);
+        } else {
+            $childLayouts = LayoutModel::findBy(
+                [
+                    'tl_layout.isChild=1',
+                    'tl_layout.id IN (SELECT tl_layout.id FROM tl_layout WHERE tl_layout.parentLayout=?)'
+                ],
+                [$dc->id]
+            );
 
-			// Save parent data in database
-			// Do not use the LayoutModel here
-			\Database::getInstance()->prepare("UPDATE tl_layout %s WHERE id=?")
-				->set($arrData)
-				->execute($dc->id);
-		}
-		else
-		{
-			$objChildLayouts = \LayoutModel::findBy(
-				array(
-					'tl_layout.isChild=1',
-					'tl_layout.id IN (SELECT tl_layout.id FROM tl_layout WHERE tl_layout.parentLayout=?)'
-				),
-				array($dc->id)
-			);
+            if (null !== $childLayouts) {
+                $data = $dc->activeRecord->row();
 
-			if (null !== $objChildLayouts)
-			{
-				$arrData = $dc->activeRecord->row();
+                // Delete columns specific for each layout
+                foreach (self::getColumnsToPersist() as $column) {
+                    unset($data[$column]);
+                }
 
-				// Delete columns specific for each layout
-				foreach (self::getColumnsToPersist() as $v)
-				{
-					unset($arrData[$v]);
-				}
+                while ($childLayouts->next()) {
+                    if ($childLayouts->specificLegends) {
+                        $this->deleteSpecificColumns(
+                            $childLayouts->specificLegends,
+                            $data,
+                            $childLayouts->row()
+                        );
+                    }
 
-				while ($objChildLayouts->next())
-				{
-					if ($objChildLayouts->specificLegends)
-					{
-						$this->deleteSpecificColumns($objChildLayouts->specificLegends, $arrData, $objChildLayouts->row());
-					}
-
-					// Update child layout row
-					// Do not use the LayoutModel here
-					\Database::getInstance()->prepare("UPDATE tl_layout %s WHERE id=?")
-						->set($arrData)
-						->execute($objChildLayouts->id);
-				}
-			}
-		}
-	}
+                    // Update child layout row
+                    // Do not use the LayoutModel here
+                    Database::getInstance()->prepare("UPDATE tl_layout %s WHERE id=?")
+                        ->set($data)
+                        ->execute($childLayouts->id);
+                }
+            }
+        }
+    }
 
 
-	/**
-	 * Delete specific columns
-	 *
-	 * @param mixed $arrSpecificLegends
-	 * @param array $arrData     The parent layout's row
-	 * @param array $arrChildRow The child layout's row
-	 */
-	protected function deleteSpecificColumns($arrSpecificLegends, &$arrData, $arrChildRow)
-	{
-		if (!is_array($arrSpecificLegends))
-		{
-			$arrSpecificLegends = trimsplit(',', $arrSpecificLegends);
-		}
+    /**
+     * Delete specific columns
+     *
+     * @param mixed $specificLegends
+     * @param array $data     The parent layout's row
+     * @param array $childRow The child layout's row
+     */
+    protected function deleteSpecificColumns($specificLegends, &$data, $childRow)
+    {
+        if (!is_array($specificLegends)) {
+            $specificLegends = trimsplit(',', $specificLegends);
+        }
 
-		foreach ($arrSpecificLegends as $legend)
-		{
-			$palette = self::findLegendInOriginalPalette($legend);
-			$fields = trimsplit(',', $palette[3]);
+        foreach ($specificLegends as $legend) {
+            $palette = self::findLegendInOriginalPalette($legend);
+            $fields  = trimsplit(',', $palette[3]);
 
-			foreach ($fields as $field)
-			{
-				// Delete field
-				unset($arrData[$field]);
+            foreach ($fields as $field) {
+                // Delete field
+                unset($data[$field]);
 
-				$keys = array
-				(
-					$field, // For deleting subpalette fields
-					$field . '_' . $arrChildRow[$field] // For deleting subpalette fields with trigger
-				);
+                $keys = [
+                    $field, // For deleting subpalette fields
+                    $field . '_' . $childRow[$field] // For deleting subpalette fields with trigger
+                ];
 
-				// Delete subpalette fields
-				foreach ($keys as $key)
-				{
-					if (array_key_exists($key, $GLOBALS['TL_DCA']['tl_layout']['subpalettes']))
-					{
-						foreach (trimsplit(',', $GLOBALS['TL_DCA']['tl_layout']['subpalettes'][$key]) as $subfield)
-						{
-							unset($arrData[$subfield]);
-						}
-					}
-				}
-			}
-		}
-	}
+                // Delete subpalette fields
+                foreach ($keys as $key) {
+                    if (array_key_exists($key, $GLOBALS['TL_DCA']['tl_layout']['subpalettes'])) {
+                        foreach (trimsplit(',', $GLOBALS['TL_DCA']['tl_layout']['subpalettes'][$key]) as $subfield) {
+                            unset($data[$subfield]);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
-	/**
-	 * Get all columns that must not overridden by the parent layout
-	 *
-	 * @return array
-	 */
-	public static function getColumnsToPersist()
-	{
-		$title_legend = self::findLegendInOriginalPalette('title_legend');
+    /**
+     * Get all columns that must not overridden by the parent layout
+     *
+     * @return array
+     */
+    public static function getColumnsToPersist()
+    {
+        $titleLegend         = self::findLegendInOriginalPalette('title_legend');
+        $fieldsInTitleLegend = array_reduce(
+            trimsplit(',', $titleLegend[3]),
+            function ($carry, $field) {
 
-		$arrFieldsInTitleLegend = array_reduce(trimsplit(',', $title_legend[3]), function ($carry, $field)
-		{
+                return array_merge(
+                    $carry,
+                    [$field],
+                    trimsplit(',', $GLOBALS['TL_DCA']['tl_layout']['subpalettes'][$field])
+                );
+            },
+            []
+        );
 
-			return array_merge($carry, array($field), trimsplit(',', $GLOBALS['TL_DCA']['tl_layout']['subpalettes'][$field]));
-		}, array());
-
-		return array_merge
-		(
-			array('id', 'pid', 'tstamp'),
-			$arrFieldsInTitleLegend
-		);
-	}
+        return array_merge(
+            ['id', 'pid', 'tstamp'],
+            $fieldsInTitleLegend
+        );
+    }
 
 
-	/**
-	 * @param string $strLegendName The lengend's name. See example output for 'feed_legend' below:
-	 *
-	 * @return array[0] => {feed_legend:hide},newsfeeds,calendarfeeds;
-	 *              [1] => {feed_legend:hide}
-	 *              [2] => feed_legend
-	 *              [3] => newsfeeds,calendarfeeds
-	 */
-	public static function findLegendInOriginalPalette($strLegendName)
-	{
-		// Find legend incl. brackets (#1) and associated fields (#3) by legend name (#2) in palette
-		preg_match('/(\{(' . $strLegendName . ')[^\}]*?\})\,(.+?)\;/', Dca::getOriginalPalette(), $matches);
+    /**
+     * @param string $legendName The lengend's name. See example output for 'feed_legend' below:
+     *
+     * @return array[0] => {feed_legend:hide},newsfeeds,calendarfeeds;
+     *              [1] => {feed_legend:hide}
+     *              [2] => feed_legend
+     *              [3] => newsfeeds,calendarfeeds
+     */
+    public static function findLegendInOriginalPalette($legendName)
+    {
+        // Find legend incl. brackets (#1) and associated fields (#3) by legend name (#2) in palette
+        preg_match('/(\{(' . $legendName . ')[^\}]*?\})\,(.+?)\;/', Dca::getOriginalPalette(), $matches);
 
-		return $matches;
-	}
+        return $matches;
+    }
 }
