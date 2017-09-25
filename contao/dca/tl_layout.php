@@ -44,7 +44,7 @@ $GLOBALS['TL_DCA']['tl_layout']['fields']['isChild'] = [
     'inputType'     => 'checkbox',
     'eval'          => [
         'submitOnChange' => true,
-        'tl_class'       => 'long'
+        'tl_class'       => 'clr long'
     ],
     'save_callback' => [['ChildLayouts\Dca', 'checkIfChildPossible']],
     'sql'           => "char(1) NOT NULL default ''"
