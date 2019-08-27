@@ -175,7 +175,7 @@ class Helper
     public static function findLegendInOriginalPalette($legendName)
     {
         // Find legend incl. brackets (#1) and associated fields (#3) by legend name (#2) in palette
-        preg_match('/(\{(' . $legendName . ')[^\}]*?\})\,(.+?)[\;$]/', Dca::getOriginalPalette(), $matches);
+        preg_match('/(\{(' . $legendName . ')[^\}]*?\})\,(.+?)(\;|$)/', Dca::getOriginalPalette(), $matches);
 
         return $matches;
     }
